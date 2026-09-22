@@ -1,0 +1,21 @@
+{
+  "name": "drawai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered architecture diagram canvas based on drawio",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "setup:drawio": "node scripts/setup-drawio.mjs",
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

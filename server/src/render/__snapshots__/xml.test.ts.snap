@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderXml > 快照 1`] = `
+"<mxfile host="drawai" agent="drawai" version="1.0" type="device">
+  <diagram id="drawai-page-1" name="测试图">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g1" value="核心服务" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=6 4;fillColor=#f0f7ff;strokeColor=#b6d4fe;fontColor=#1e40af;fontSize=13;fontStyle=1;verticalAlign=top;align=center;spacingTop=8;container=1;collapsible=0;recursiveResize=0;strokeWidth=1;shadow=0" vertex="1" parent="1"><mxGeometry x="220" y="56" width="162" height="208" as="geometry" /></mxCell>
+        <mxCell id="n1" value="用户 Web" style="rounded=1;arcSize=12;fillColor=#e0f2fe;strokeColor=#38bdf8;fontColor=#075985;fontSize=13;strokeWidth=1.5;shadow=0;whiteSpace=wrap;html=1" vertex="1" parent="1"><mxGeometry x="56" y="120" width="110" height="46" as="geometry" /></mxCell>
+        <mxCell id="n2" value="订单服务" style="rounded=1;arcSize=12;fillColor=#dbeafe;strokeColor=#3b82f6;fontColor=#1e40af;fontSize=13;strokeWidth=1.5;shadow=0;whiteSpace=wrap;html=1" vertex="1" parent="g1"><mxGeometry x="26" y="40" width="110" height="46" as="geometry" /></mxCell>
+        <mxCell id="n3" value="订单库" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#dcfce7;strokeColor=#22c55e;fontColor=#14532d;fontSize=13;strokeWidth=1.5;shadow=0;whiteSpace=wrap;html=1" vertex="1" parent="g1"><mxGeometry x="26" y="128" width="110" height="58" as="geometry" /></mxCell>
+        <mxCell id="e1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6d8fb3;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=11;fontColor=#44546b;labelBackgroundColor=#ffffff;shadow=0" edge="1" parent="1" source="n1" target="n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6d8fb3;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=11;fontColor=#44546b;labelBackgroundColor=#ffffff;shadow=0;dashed=1;dashPattern=6 4" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>"
+`;

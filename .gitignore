@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# drawio webapp 静态资源（由 npm run setup:drawio 拉取）
+client/public/drawio/
+client/public/drawio.version.txt
+.drawio-src/
+
