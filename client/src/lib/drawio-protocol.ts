@@ -112,6 +112,8 @@ export class DrawioEmbedClient {
       spin: '1',
       configure: '1',
       libraries: '1',
+      // 界面语言：简体中文（drawio 内置语言包 resources/dia_zh.txt；繁体为 zh-tw）
+      lang: 'zh',
       // 默认收起编辑器左右面板（形状库 / 格式面板），画布沉浸式全屏铺满；
       // 用户仍可经编辑器工具栏按钮或快捷键（Ctrl+Shift+K 形状 / Ctrl+Shift+P 格式）唤出
       sidebar: '0',
