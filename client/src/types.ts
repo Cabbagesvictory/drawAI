@@ -59,6 +59,9 @@ export interface ThemeInfo {
 /** SSE 生成阶段 */
 export type GenerateStage = 'analyzing' | 'generating' | 'layout' | 'render' | 'done'
 
+/** 布局方向：FREE 不限定方向，由服务端自动选择 */
+export type LayoutDirection = 'FREE' | 'LR' | 'TB'
+
 export interface GenerateResultPayload {
   xml: string
   graph: unknown
@@ -69,6 +72,6 @@ export interface GenerateResultPayload {
 export interface GenerateParams {
   document: string
   themeId: string
-  direction: 'TB' | 'LR'
+  direction: LayoutDirection
   mock?: boolean
 }

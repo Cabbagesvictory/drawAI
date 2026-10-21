@@ -6,8 +6,8 @@
  * ELK layered + INCLUDE_CHILDREN 对层级分组图的对齐与紧凑度表现稳定。
  *
  * 同时提取 ELK 的正交边路由（起止锚点 + 折点），由 xml.ts 写入 mxGeometry 的
- * exit/entry 锚点与 waypoints：drawio 默认会自行重路由连线（不感知第三方节点，
- * 中间段可能穿过图形块），固定为 ELK 的避障路径后不再遮挡节点。
+ * exit/entry 锚点与 waypoints：作为初始避障路径（也是旧版 drawio 的兜底），
+ * 新版 drawio 则按 libavoidRouting 在拖动节点时自动重算路由，避免折点留在原地。
  */
 import ElkConstructor from 'elkjs/lib/elk.bundled.js'
 import type { ELK, ElkNode } from 'elkjs/lib/elk-api.js'
@@ -55,6 +55,9 @@ export interface LayoutResult {
   height: number
 }
 
+/** 布局方向：FREE 不限定方向，由系统选择更贴合画布的一种 */
+export type LayoutDirection = 'LR' | 'TB' | 'FREE'
+
 const FONT_SIZE = 13
 const NODE_HEIGHT = 46
 const CYLINDER_HEIGHT = 58
@@ -66,6 +69,8 @@ const GROUP_TITLE_H = 40
 const CANVAS_PAD = 56
 
 const CLUSTER_PREFIX = 'cluster::'
+/** 自由布局选向的基准视口（16:10，接近编辑器画布区域） */
+const FREE_VIEWPORT = { width: 1600, height: 1000 }
 
 const CJK_RE = /[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef]/
 
@@ -122,6 +127,7 @@ function simplifyPath(points: LayoutEdgePoint[]): LayoutEdgePoint[] {
 const elk = new (ElkConstructor as unknown as new () => ELK)()
 
 export async function layoutGraph(data: GraphData, direction: 'TB' | 'LR'): Promise<LayoutResult> {
+  // 注：ELK layered 必须指定方向，所谓「自由布局」是在横向/纵向中自动选优，见 layoutGraphAuto
   const nodeById = new Map(data.nodes.map((n) => [n.id, n]))
 
   // 节点只归属第一个声明且有效的组
@@ -260,4 +266,21 @@ export async function layoutGraph(data: GraphData, direction: 'TB' | 'LR'): Prom
     width: round(result.width),
     height: round(result.height),
   }
+}
+
+/** 评分：按基准视口等比缩放，值越小说明越贴合画布；折点略多则稍作惩罚 */
+function layoutScore(result: LayoutResult): number {
+  const scale = Math.max(result.width / FREE_VIEWPORT.width, result.height / FREE_VIEWPORT.height)
+  const bends = result.edges.reduce((sum, edge) => sum + edge.bends.length, 0)
+  return scale * (1 + bends * 0.002)
+}
+
+/**
+ * 自由布局：不限定方向，分别按横向与纵向布局，选更贴合画布的一种。
+ * 两种结果都保留 ELK 的正交路由与分组容器，画面质量与手动选向一致。
+ */
+export async function layoutGraphAuto(data: GraphData): Promise<LayoutResult> {
+  const lr = await layoutGraph(data, 'LR')
+  const tb = await layoutGraph(data, 'TB')
+  return layoutScore(lr) <= layoutScore(tb) ? lr : tb
 }

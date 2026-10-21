@@ -1,5 +1,6 @@
 /** 架构图生成 prompt：system 提示、few-shot 示例与 mock 数据 */
 import type { GraphData } from '../render/schema.js'
+import type { LayoutDirection } from '../render/layout.js'
 
 export const SYSTEM_PROMPT = `你是一位资深软件架构师，擅长把技术文档提炼为清晰、分层、配色友好的系统架构图。
 
@@ -128,11 +129,13 @@ export const FEW_SHOT_MESSAGES: FewShotMessage[] = [
   },
 ]
 
-export function buildUserPrompt(document: string, direction: 'TB' | 'LR'): string {
+export function buildUserPrompt(document: string, direction: LayoutDirection): string {
   const layoutHint =
     direction === 'LR'
       ? '图将按「从左到右」的流向渲染，请让主链路自左向右逐步推进。'
-      : '图将按「从上到下」的流向渲染，请让主链路自上而下逐步展开。'
+      : direction === 'TB'
+        ? '图将按「从上到下」的流向渲染，请让主链路自上而下逐步展开。'
+        : '布局方向不限，请按调用关系自然组织主链路（系统会自动选择最合适的排布方向）。'
   return [
     '请根据以下技术文档设计系统架构图。',
     layoutHint,

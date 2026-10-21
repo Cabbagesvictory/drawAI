@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { useAppStore } from '../stores/app-store'
 import { DrawioEmbedClient } from '../lib/drawio-protocol'
 import { computeXmlBounds } from '../lib/xml-bounds'
+import { enableAutoRouting } from '../lib/xml-auto-routing'
 import { downloadDataUri } from '../lib/download'
 
 interface Props {
@@ -71,9 +72,11 @@ export function DrawioCanvas({ onClientReady }: Props) {
     acceptingAutosaveRef.current = false
     loadedIdRef.current = targetId
     try {
+      // 旧版生成的图没有 libavoidRouting 标记：加载时补上，拖动节点即可动态重算连线
+      const preparedXml = enableAutoRouting(xml)
       // 预先计算图形包围盒：用 viewbox 双向适配（drawio 的 fit 仅宽度适配）
-      const bounds = computeXmlBounds(xml)
-      await client.load(xml, {
+      const bounds = computeXmlBounds(preparedXml)
+      await client.load(preparedXml, {
         title,
         viewbox: bounds ? { ...bounds, border: 24 } : undefined,
         fit: !bounds,

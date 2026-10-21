@@ -71,6 +71,9 @@ function edgeStyle(style: 'solid' | 'dashed' | null | undefined, theme: ThemePal
   const e = theme.edge
   const parts = [
     'edgeStyle=orthogonalEdgeStyle',
+    // drawio 内置 libavoid 动态避障路由：节点被拖动/缩放时自动重算连线，
+    // 避免 ELK 折点（waypoints）留在原地把线条“钉住”
+    'libavoidRouting=1',
     'rounded=1',
     'orthogonalLoop=1',
     'jettySize=auto',
@@ -166,7 +169,8 @@ export function renderXml(data: GraphData, layout: LayoutResult, theme: ThemePal
       : ''
     const style = pins ? `${edgeStyle(edge.style, theme)};${pins}` : edgeStyle(edge.style, theme)
     const value = edge.label ? ` value="${esc(edge.label)}"` : ''
-    // 折点写为 waypoints：drawio 不再自行重路由，连线沿 ELK 避障路径绕开图形块
+    // 折点写为 waypoints：作为初始避障路径与旧版 drawio 的兜底；
+    // 新版 drawio 会按 libavoidRouting 在拖动时动态重算并覆盖这些折点
     const geometry =
       route && route.bends.length > 0
         ? `<mxGeometry relative="1" as="geometry"><Array as="points">${route.bends

@@ -166,8 +166,8 @@ sequenceDiagram
     participant S as Express /api/generate/stream
     participant L as DeepSeek API
 
-    U->>P: 粘贴文档 → 选择主题/方向 → 生成
-    P->>S: POST {document, themeId, direction}<br/>header: x-deepseek-key（可选）
+    U->>P: 粘贴文档 → 选择主题/方向（方向可不选）→ 生成
+    P->>S: POST {document, themeId, direction?}<br/>header: x-deepseek-key（可选）
     S-->>P: SSE stage(analyzing)
     S->>L: chat.completions（stream + json_object）
     loop 流式输出
@@ -176,7 +176,7 @@ sequenceDiagram
     end
     S->>S: extractJson → zod 校验（失败自动重试 1 次，携带错误信息）
     S-->>P: SSE stage(layout)
-    S->>S: layoutGraph（ELK layered + 正交路由）
+    S->>S: layoutGraph（显式方向）或 layoutGraphAuto（自由布局自动选向）
     S-->>P: SSE stage(render)
     S->>S: renderXml（主题色板 + 锚点/waypoints 固化）
     S-->>P: SSE result(xml, graph, title, themeId)
@@ -192,7 +192,7 @@ SSE 消息类型：
 | `result` | `xml, graph, title, themeId` | 最终产物（XML + 结构化数据） |
 | `error` | `message` | 已映射为可读中文的错误信息 |
 
-请求约束与演示模式：`document` 必填且 ≤ 24000 字符（超出返回 400）；`direction` 默认 `LR`；`themeId` 非法时回退默认主题；无可用 API Key 或 `mock: true` 时跳过 LLM，使用内置 `MOCK_GRAPH` 并按阶段插入延时以演示完整进度。
+请求约束与演示模式：`document` 必填且 ≤ 24000 字符（超出返回 400）；`direction` 可选 `LR` / `TB` / `FREE`，默认 `FREE`（自由布局：分别按横向、纵向布局，自动选更贴合画布的一种）；`themeId` 非法时回退默认主题；无可用 API Key 或 `mock: true` 时跳过 LLM，使用内置 `MOCK_GRAPH` 并按阶段插入延时以演示完整进度。
 
 ### 5.2 服务端渲染管线（render/）
 
@@ -202,9 +202,10 @@ SSE 消息类型：
    - `graphDataSchema` 约束：nodes 1–40、edges ≤ 90、groups ≤ 12、id ≤ 64 字符、label ≤ 160 字符；节点 `type` 为 10 种枚举之一。
    - `sanitizeGraphData` 清洗：节点 id 去重；丢弃引用不存在节点与自环的边；分组引用过滤，节点只归属第一个声明的组，空组剔除。
 2. **layout.ts（ELK 布局）**
-   - 输入 GraphData + 方向，输出节点/分组坐标、边路由（起点锚点、折点、终点）、画布尺寸。
+   - 输入 GraphData + 方向（LR / TB / FREE），输出节点/分组坐标、边路由（起点锚点、折点、终点）、画布尺寸。
    - 分组以 ELK 层级节点表达（`elk.padding` 的 top 为标题栏预留 40px）；节点尺寸按标签文本估算（中文字符全宽、其余 0.62 倍，宽 110–300，高 46 / 圆柱类 58）。
    - 布局参数：`algorithm=layered`、`hierarchyHandling=INCLUDE_CHILDREN`、`edgeRouting=ORTHOGONAL`、层间距 76、节点间距 42、边-节点间距 24、画布四周留白 56。
+   - 自由布局：ELK layered 必须指定方向，故 `FREE` 由 `layoutGraphAuto` 分别跑 LR/TB，按 1600×1000 基准视口计算缩放比 `max(w/1600, h/1000)`（折点略多小幅惩罚），取更贴合画布的一种，路由与显式选向完全一致。
    - 边路由提取：按 `edge.container`（LCA）把组内边坐标平移到画布绝对坐标；`simplifyPath` 去重合并共线冗余折点。
 3. **theme.ts（主题色板）**
    - 5 套主题：深海蓝（默认）/ 石墨商务 / 森野绿 / 星夜紫 / 极简灰，每套定义背景、分组、连线与 10 类节点的 fill/stroke/text。
@@ -294,7 +295,7 @@ ThemePalette = { id, name, background, group{fill,stroke,title}, edge{color,labe
 |---|---|---|---|
 | `GET /api/health` | — | `{ ok, model, hasServerKey }` | 健康检查与配置探测 |
 | `GET /api/themes` | — | `{ themes: ThemePalette[] }` | 主题列表（供 AIPanel 渲染选卡） |
-| `POST /api/generate/stream` | JSON body：`document, themeId, direction, mock?, model?`；可选头 `x-deepseek-key` | SSE（`text/event-stream`）：`stage / token / result / error` | 生成管线 |
+| `POST /api/generate/stream` | JSON body：`document, themeId, direction?, mock?, model?`（`direction` 默认 `FREE`）；可选头 `x-deepseek-key` | SSE（`text/event-stream`）：`stage / token / result / error` | 生成管线 |
 | 其余 `/api/*` | — | `{ message: '接口不存在' }` 404 | 统一兜底 |
 
 错误处理约定（`routes/generate.ts`）：

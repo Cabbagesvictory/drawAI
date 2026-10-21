@@ -77,6 +77,13 @@ describe('renderXml', () => {
     expect(dashedLine).toContain('dashed=1')
   })
 
+  it('所有边启用 drawio 内置 libavoid 动态避障（拖动节点后自动重路由）', () => {
+    for (const line of xml.split('\n').filter((l) => l.includes(' edge="1"'))) {
+      expect(line).toContain('libavoidRouting=1')
+      expect(line).toContain('edgeStyle=orthogonalEdgeStyle')
+    }
+  })
+
   it('标签特殊字符被转义', () => {
     const tricky: GraphData = {
       title: 'A&B',

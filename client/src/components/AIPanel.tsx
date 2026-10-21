@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, FileText, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import { useAppStore } from '../stores/app-store'
 import { fetchThemes, generateDiagramStream } from '../lib/api'
-import type { GenerateStage, ThemeInfo } from '../types'
+import type { GenerateStage, LayoutDirection, ThemeInfo } from '../types'
 
 interface Props {
   onOpenSettings: () => void
@@ -35,6 +35,12 @@ const EXAMPLE_DOC = `# 订单系统技术方案
 
 ## 可观测性
 使用 Prometheus + Grafana 监控，ELK 收集日志`
+
+const LAYOUT_OPTIONS: { value: LayoutDirection; label: string; hint: string }[] = [
+  { value: 'FREE', label: '自由布局', hint: '不限定方向，自动选择更贴合画布的排布' },
+  { value: 'LR', label: '横向', hint: '主链路从左向右展开' },
+  { value: 'TB', label: '纵向', hint: '主链路从上向下展开' },
+]
 
 function ThemeCard({
   theme,
@@ -77,13 +83,15 @@ export function AIPanel({ onOpenSettings }: Props) {
   const [doc, setDoc] = useState('')
   const [themes, setThemes] = useState<ThemeInfo[]>([])
   const [themeId, setThemeId] = useState('')
-  const [direction, setDirection] = useState<'LR' | 'TB'>('LR')
+  const [direction, setDirection] = useState<LayoutDirection>('FREE')
   const [progress, setProgress] = useState<{ stage: GenerateStage; message: string }[]>([])
   const [tokenChars, setTokenChars] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const generating = useAppStore((s) => s.generating)
   const abortRef = useRef<AbortController | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const progressRef = useRef<HTMLDivElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchThemes()
@@ -96,7 +104,19 @@ export function AIPanel({ onOpenSettings }: Props) {
       })
   }, [])
 
+  // 进度面板在生成按钮下方：面板内容较长时会被挤出视野，开始时自动滚入
+  useEffect(() => {
+    if (!generating) return
+    progressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [generating])
+
+  // 错误信息在进度下方，出现时同样滚入视野
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [error])
+
   const currentStage = progress.length > 0 ? progress[progress.length - 1].stage : null
+  const directionHint = LAYOUT_OPTIONS.find((item) => item.value === direction)?.hint
 
   function stageStatus(stage: GenerateStage): 'pending' | 'active' | 'done' {
     if (currentStage == null) return 'pending'
@@ -235,20 +255,18 @@ export function AIPanel({ onOpenSettings }: Props) {
           </div>
         </div>
 
-        {/* 布局方向 */}
+        {/* 布局方向（可不选，自由布局由服务端自动选向） */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-500">布局方向</label>
-          <div className="flex gap-2">
-            {(
-              [
-                { value: 'LR', label: '横向（从左到右）' },
-                { value: 'TB', label: '纵向（从上到下）' },
-              ] as const
-            ).map((item) => (
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-xs font-medium text-slate-500">布局方向</label>
+            <span className="text-[11px] text-slate-400">默认自由</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {LAYOUT_OPTIONS.map((item) => (
               <button
                 key={item.value}
                 onClick={() => setDirection(item.value)}
-                className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition-colors ${
+                className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${
                   direction === item.value
                     ? 'border-blue-400 bg-blue-50 font-medium text-blue-700'
                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -258,6 +276,7 @@ export function AIPanel({ onOpenSettings }: Props) {
               </button>
             ))}
           </div>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">{directionHint}</p>
         </div>
 
         {/* 生成按钮 */}
@@ -279,7 +298,7 @@ export function AIPanel({ onOpenSettings }: Props) {
 
         {/* 进度 */}
         {(generating || progress.length > 0) && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div ref={progressRef} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="space-y-2">
               {STAGES.map((s) => {
                 const status = stageStatus(s.key)
@@ -325,7 +344,7 @@ export function AIPanel({ onOpenSettings }: Props) {
 
         {/* 错误 */}
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          <div ref={errorRef} className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
             <div className="font-medium">生成失败</div>
             <div className="mt-1 break-all">{error}</div>
             <button

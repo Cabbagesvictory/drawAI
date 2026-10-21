@@ -2,6 +2,7 @@
 import OpenAI from 'openai'
 import type { ZodError } from 'zod'
 import { graphDataSchema, sanitizeGraphData, type GraphData } from '../render/schema.js'
+import type { LayoutDirection } from '../render/layout.js'
 import { FEW_SHOT_MESSAGES, SYSTEM_PROMPT, buildUserPrompt } from '../prompt/index.js'
 
 /** 未配置 API Key */
@@ -95,7 +96,7 @@ async function streamCompletion(
 
 export interface GenerateGraphOptions {
   document: string
-  direction: 'TB' | 'LR'
+  direction: LayoutDirection
   config: LlmConfig
   signal?: AbortSignal
   /** 流式增量回调（用于向前端推送进度） */

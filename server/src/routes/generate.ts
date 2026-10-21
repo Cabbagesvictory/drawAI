@@ -8,7 +8,7 @@ import {
   resolveLlmConfig,
 } from '../llm/deepseek.js'
 import { MOCK_GRAPH } from '../prompt/index.js'
-import { layoutGraph } from '../render/layout.js'
+import { layoutGraph, layoutGraphAuto, type LayoutDirection } from '../render/layout.js'
 import type { GraphData } from '../render/schema.js'
 import { getTheme } from '../render/theme.js'
 import { renderXml } from '../render/xml.js'
@@ -56,7 +56,8 @@ generateRouter.post('/stream', async (req: Request, res: Response) => {
   }
 
   const theme = getTheme(typeof body.themeId === 'string' ? body.themeId : null)
-  const direction: 'TB' | 'LR' = body.direction === 'TB' ? 'TB' : 'LR'
+  const direction: LayoutDirection =
+    body.direction === 'LR' || body.direction === 'TB' ? body.direction : 'FREE'
   const headerKey = typeof req.headers['x-deepseek-key'] === 'string' ? req.headers['x-deepseek-key'] : undefined
   const config = resolveLlmConfig(headerKey, typeof body.model === 'string' ? body.model : undefined)
   const useMock = body.mock === true || !config.apiKey
@@ -127,7 +128,8 @@ generateRouter.post('/stream', async (req: Request, res: Response) => {
     // ---- 阶段 3：自动布局 ----
     stage('layout', '正在计算自动布局…')
     await delay(useMock ? 400 : 30)
-    const layout = await layoutGraph(data, direction)
+    const layout =
+      direction === 'FREE' ? await layoutGraphAuto(data) : await layoutGraph(data, direction)
 
     // ---- 阶段 4：主题渲染 ----
     stage('render', `正在渲染「${theme.name}」主题…`)

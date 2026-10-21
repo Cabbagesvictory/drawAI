@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layoutGraph, type LayoutResult } from './layout.js'
+import { layoutGraph, layoutGraphAuto, type LayoutResult } from './layout.js'
 import { graphDataSchema, sanitizeGraphData, type GraphData } from './schema.js'
 import { MOCK_GRAPH } from '../prompt/index.js'
 
@@ -103,6 +103,25 @@ function segmentHitsRect(
     return false
   }
   return t1 - t0 > 1e-6
+}
+
+/** 断言所有连线不穿过源/目标以外的节点 */
+function expectEdgesAvoidNodes(result: LayoutResult, label: string): void {
+  const rects = absRects(result)
+  const tol = 1
+  for (const route of result.edges) {
+    const pts = [route.start, ...route.bends, route.end]
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      for (const [id, rect] of rects) {
+        if (id === route.sourceId || id === route.targetId) continue
+        const hit = segmentHitsRect(pts[i], pts[i + 1], rect, tol)
+        expect(
+          hit,
+          `${label} 边 ${route.id} 线段 (${pts[i].x},${pts[i].y})-(${pts[i + 1].x},${pts[i + 1].y}) 穿过节点 ${id}`,
+        ).toBe(false)
+      }
+    }
+  }
 }
 
 describe('layoutGraph（ELK layered）', () => {
@@ -284,21 +303,7 @@ describe('边路由（ELK 正交路由，避免连线穿过图形块）', () => 
   it.each([['LR'], ['TB']] as const)('%s：MOCK_GRAPH 全量边不穿过任何第三方节点', async (direction) => {
     const clean = sanitizeGraphData(graphDataSchema.parse(MOCK_GRAPH))
     const res = await layoutGraph(clean, direction)
-    const rects = absRects(res)
-    const tol = 1
-    for (const route of res.edges) {
-      const pts = [route.start, ...route.bends, route.end]
-      for (let i = 0; i < pts.length - 1; i += 1) {
-        for (const [id, rect] of rects) {
-          if (id === route.sourceId || id === route.targetId) continue
-          const hit = segmentHitsRect(pts[i], pts[i + 1], rect, tol)
-          expect(
-            hit,
-            `${direction} 边 ${route.id} 线段 (${pts[i].x},${pts[i].y})-(${pts[i + 1].x},${pts[i + 1].y}) 穿过节点 ${id}`,
-          ).toBe(false)
-        }
-      }
-    }
+    expectEdgesAvoidNodes(res, direction)
   })
 
   it('复杂图（MOCK_GRAPH LR）也生成成对的正交路径', async () => {
@@ -308,5 +313,17 @@ describe('边路由（ELK 正交路由，避免连线穿过图形块）', () => 
     for (const route of res.edges) {
       expect(route.bends.length + 2).toBeGreaterThanOrEqual(2)
     }
+  })
+
+  it('自由布局：自动选用横向/纵向中更贴合画布的一种，且连线同样避障', async () => {
+    const clean = sanitizeGraphData(graphDataSchema.parse(MOCK_GRAPH))
+    const auto = await layoutGraphAuto(clean)
+    const lr = await layoutGraph(clean, 'LR')
+    const tb = await layoutGraph(clean, 'TB')
+    // 自由布局不新增路由逻辑，就是两种手动布局中的较优者
+    expect([lr, tb]).toContainEqual(auto)
+    expectEdgesAvoidNodes(auto, 'FREE')
+    // 同样的输入得到相同结果
+    expect(await layoutGraphAuto(clean)).toEqual(auto)
   })
 })
